@@ -1,0 +1,19 @@
+syntax = "proto3";
+option go_package = "github.com/iamstep4ik/quick-meet/auth/pb";
+
+package pb;
+
+service RegisterUser{
+    rpc Register(RegisterRequest) returns (RegisterResponse){}
+}
+
+message RegisterRequest{
+    string username = 1;
+    string email = 2;
+    string password = 3;
+}
+
+message RegisterResponse{
+    string token = 1;
+    string message = 2;
+}
