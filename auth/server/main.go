@@ -13,6 +13,7 @@ import (
 	"github.com/iamstep4ik/quick-meet/models"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -23,6 +24,7 @@ const (
 
 type server struct {
 	pb.UnimplementedRegisterUserServer
+	pb.UnimplementedLoginUserServer
 	db *sqlx.DB
 }
 
@@ -34,10 +36,15 @@ func (s *server) Register(ctx context.Context, req *pb.RegisterRequest) (*pb.Reg
 	if err := lib.ValidateInput(username, email, password); err != nil {
 		return nil, err
 	}
+	hash_password, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, fmt.Errorf("failed to hash password: %v", err)
+	}
+
 	user := models.User{
 		Username:     username,
 		Email:        email,
-		HashPassword: password,
+		HashPassword: string(hash_password),
 		InsertedAt:   time.Now(),
 		UpdatedAt:    time.Now(),
 	}
@@ -55,11 +62,31 @@ func (s *server) Register(ctx context.Context, req *pb.RegisterRequest) (*pb.Reg
 	}
 	rows.Close()
 
-	token := "example-token"
-
 	return &pb.RegisterResponse{
-		Token:   token,
 		Message: "User registered successfully",
+	}, nil
+}
+
+func (s *server) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {
+	var user models.User
+	username := req.GetUsername()
+	password := req.GetPassword()
+	query := `SELECT id, password_hash FROM users WHERE username = $1`
+	err := s.db.Get(&user, query, username)
+	if err != nil {
+		return nil, fmt.Errorf("invalid username or password")
+	}
+	err = bcrypt.CompareHashAndPassword([]byte(user.HashPassword), []byte(password))
+	if err != nil {
+		return nil, fmt.Errorf("invalid username or password")
+	}
+	token, err := lib.GenerateToken(&user)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate token: %v", err)
+	}
+
+	return &pb.LoginResponse{
+		Token: token,
 	}, nil
 }
 
@@ -77,6 +104,7 @@ func main() {
 
 	grpcServer := grpc.NewServer()
 	pb.RegisterRegisterUserServer(grpcServer, &server{db: db})
+	pb.RegisterLoginUserServer(grpcServer, &server{db: db})
 	reflection.Register(grpcServer)
 
 	log.Printf("server listening at %v", lis.Addr())

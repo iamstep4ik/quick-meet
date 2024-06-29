@@ -108,3 +108,94 @@ var RegisterUser_ServiceDesc = grpc.ServiceDesc{
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "pb/auth.proto",
 }
+
+const (
+	LoginUser_Login_FullMethodName = "/pb.LoginUser/Login"
+)
+
+// LoginUserClient is the client API for LoginUser service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type LoginUserClient interface {
+	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
+}
+
+type loginUserClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewLoginUserClient(cc grpc.ClientConnInterface) LoginUserClient {
+	return &loginUserClient{cc}
+}
+
+func (c *loginUserClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LoginResponse)
+	err := c.cc.Invoke(ctx, LoginUser_Login_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// LoginUserServer is the server API for LoginUser service.
+// All implementations must embed UnimplementedLoginUserServer
+// for forward compatibility
+type LoginUserServer interface {
+	Login(context.Context, *LoginRequest) (*LoginResponse, error)
+	mustEmbedUnimplementedLoginUserServer()
+}
+
+// UnimplementedLoginUserServer must be embedded to have forward compatible implementations.
+type UnimplementedLoginUserServer struct {
+}
+
+func (UnimplementedLoginUserServer) Login(context.Context, *LoginRequest) (*LoginResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
+}
+func (UnimplementedLoginUserServer) mustEmbedUnimplementedLoginUserServer() {}
+
+// UnsafeLoginUserServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to LoginUserServer will
+// result in compilation errors.
+type UnsafeLoginUserServer interface {
+	mustEmbedUnimplementedLoginUserServer()
+}
+
+func RegisterLoginUserServer(s grpc.ServiceRegistrar, srv LoginUserServer) {
+	s.RegisterService(&LoginUser_ServiceDesc, srv)
+}
+
+func _LoginUser_Login_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LoginRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LoginUserServer).Login(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LoginUser_Login_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LoginUserServer).Login(ctx, req.(*LoginRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// LoginUser_ServiceDesc is the grpc.ServiceDesc for LoginUser service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var LoginUser_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "pb.LoginUser",
+	HandlerType: (*LoginUserServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Login",
+			Handler:    _LoginUser_Login_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "pb/auth.proto",
+}

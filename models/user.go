@@ -9,4 +9,5 @@ type User struct {
 	HashPassword string    `json:"hash_password" db:"password_hash"`
 	InsertedAt   time.Time `json:"inserted_at" db:"inserted_at"`
 	UpdatedAt    time.Time `json:"updated_at" db:"updated_at"`
+	Token        string    `json:"token" db:"token"`
 }
